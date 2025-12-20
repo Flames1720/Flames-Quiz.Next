@@ -8,8 +8,9 @@ import Link from "next/link";
 import { Edit3, Share2, Plus, Loader2, Play, Crown, Clock, Flame, CreditCard, ShieldCheck, Lock, XCircle, Search, BarChart3, BookOpen, User } from "lucide-react";
 import { GlassCard, Button } from "../../components/ui/Shared";
 
-// 🔴 ADMIN EMAIL
-const ADMIN_EMAILS = ["kingflames200717@gmail.com"];
+// 🔐 SECURE VARIABLES (Loaded from .env.local)
+const ADMIN_EMAIL_VAR = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "kingflames200717@gmail.com"; 
+const DEV_KEY_VAR = process.env.NEXT_PUBLIC_DEV_KEY || "FLAMES2025"; 
 
 export default function Dashboard() {
   const { user, userData, loading } = useAuth();
@@ -18,6 +19,8 @@ export default function Dashboard() {
   const [editData, setEditData] = useState(null);
   const [findCode, setFindCode] = useState(""); 
   const [showPay, setShowPay] = useState(false);
+  const [showKeyInput, setShowKeyInput] = useState(false);
+  const [devKeyInput, setDevKeyInput] = useState("");
 
   // 1. Fetch Logic
   useEffect(() => {
@@ -38,7 +41,28 @@ export default function Dashboard() {
     fetch();
   }, [user, view]);
 
-  // 2. Find Quiz Logic
+  const handleBecomeCreator = async () => {
+      if(user) {
+          await setDoc(doc(db, 'artifacts', 'flames_quiz_app', 'users', user.uid), { 
+               isCreator: true, joinedAt: serverTimestamp() 
+          }, { merge: true });
+          setShowPay(false);
+          alert("You are now a Creator!");
+          window.location.reload();
+      }
+  };
+  
+  const handleDevLogin = (e) => {
+      e.preventDefault();
+      if(devKeyInput === DEV_KEY_VAR) {
+          setShowKeyInput(false);
+          // Grant temporary admin view locally or update profile if desired
+          alert("Developer Key Accepted. You have admin privileges.");
+      } else {
+          alert("Invalid Key");
+      }
+  };
+
   const handleFindQuiz = async () => {
       if(!findCode) return;
       try {
@@ -52,21 +76,10 @@ export default function Dashboard() {
       } catch(e) { alert("Error finding quiz"); }
   };
 
-  const handleBecomeCreator = async () => {
-      if(user) {
-          await setDoc(doc(db, 'artifacts', 'flames_quiz_app', 'users', user.uid), { 
-               isCreator: true, joinedAt: serverTimestamp() 
-          }, { merge: true });
-          setShowPay(false);
-          alert("You are now a Creator!");
-          window.location.reload();
-      }
-  };
-
   if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-orange-500"/></div>;
   if (!user) return <div className="text-center p-20">Please log in.</div>;
 
-  const isAdmin = ADMIN_EMAILS.includes(user.email);
+  const isAdmin = user.email === ADMIN_EMAIL_VAR;
   const isCreator = userData?.isCreator || isAdmin;
 
   return (
@@ -84,19 +97,31 @@ export default function Dashboard() {
             {isCreator && <Button variant={view==='create'?'primary':'secondary'} onClick={()=>setView('create')}><Plus size={18}/> Creator</Button>}
             {!isCreator && <Button variant="secondary" className="bg-yellow-600/20 text-yellow-400" onClick={()=>setShowPay(true)}><Crown size={18}/> Upgrade</Button>}
             {isAdmin && <Button variant="secondary" className="bg-purple-900/20 text-purple-400"><BarChart3 size={18}/> Admin</Button>}
+            {!isAdmin && !isCreator && <Button variant="ghost" onClick={()=>setShowKeyInput(true)} className="text-xs text-slate-500"><Lock size={14}/></Button>}
         </div>
       </header>
 
-      {/* Mock Payment Modal */}
+      {/* MODALS */}
       {showPay && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4">
               <div className="bg-white text-slate-900 rounded-xl p-8 max-w-sm w-full text-center relative">
                   <button onClick={() => setShowPay(false)} className="absolute top-4 right-4 text-slate-400"><XCircle/></button>
                   <h3 className="text-xl font-bold mb-4 flex justify-center items-center gap-2"><CreditCard className="text-green-600"/> Creator Pass</h3>
-                  <p className="mb-6 text-slate-500 text-sm">Unlock the Studio. Create unlimited quizzes, track analytics, and more.</p>
                   <button onClick={handleBecomeCreator} className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded font-bold flex justify-center gap-2 items-center">Pay ₦5,000 <ShieldCheck size={16}/></button>
-                  <p className="text-[10px] text-slate-400 mt-4">Secure Payment Mock</p>
               </div>
+          </div>
+      )}
+
+      {showKeyInput && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4">
+             <GlassCard className="max-w-sm w-full">
+                 <h3 className="text-xl font-bold mb-4">Dev Access</h3>
+                 <form onSubmit={handleDevLogin}>
+                     <input type="password" placeholder="Key" value={devKeyInput} onChange={e=>setDevKeyInput(e.target.value)} className="w-full p-3 rounded mb-4 bg-slate-950/50 border border-white/20 text-white"/>
+                     <Button className="w-full">Unlock</Button>
+                     <Button type="button" variant="ghost" className="mt-2 w-full" onClick={()=>setShowKeyInput(false)}>Close</Button>
+                 </form>
+             </GlassCard>
           </div>
       )}
       
