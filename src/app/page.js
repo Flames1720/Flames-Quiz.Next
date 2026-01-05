@@ -32,15 +32,15 @@ export default function Home() {
       {/* Nav */}
       <nav className="absolute top-0 w-full p-6 flex justify-between items-center max-w-7xl">
         <div className="flex items-center gap-2 font-extrabold text-xl cursor-pointer text-white"><Flame className="text-orange-400"/> Flames</div>
-        {user ? (
+           {user ? (
              <div className="flex gap-2">
-                 <Link href="/dashboard" className="p-2 bg-white/10 rounded-full hover:bg-white/20"><LayoutDashboard size={20}/></Link>
-                 <button onClick={signOutUser} className="p-2 bg-white/10 rounded-full hover:bg-red-500/20"><LogOut size={20}/></button>
+              <Button variant="ghost" onClick={() => router.push('/dashboard')} className="p-2"><LayoutDashboard size={20}/></Button>
+              <Button variant="ghost" onClick={signOutUser} className="p-2"><LogOut size={20}/></Button>
              </div>
         ) : (
              <div className="flex items-center gap-3">
-               <Link href="/login" className="text-sm bg-white/10 px-4 py-2 rounded-lg hover:bg-white/20 flex items-center gap-2"><User size={16}/> Login</Link>
-               <Link href="/dashboard" className="text-sm text-slate-300 underline">Browse</Link>
+            <Button onClick={() => router.push('/login')} className="px-4 py-2 flex items-center gap-2"><User size={16}/> Login</Button>
+            <Link href="/dashboard" className="text-sm text-slate-300 underline">Browse</Link>
              </div>
         )}
       </nav>
