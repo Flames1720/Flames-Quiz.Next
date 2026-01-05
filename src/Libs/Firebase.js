@@ -1,21 +1,28 @@
 import { initializeApp, getApps } from "firebase/app";
-import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// 🔴 YOUR OFFICIAL KEYS 🔴
+// Use environment variables for Vercel deployment and local development.
+// The variables are exposed to the browser via the NEXT_PUBLIC_ prefix.
 const firebaseConfig = {
-  apiKey: "AIzaSyDU1MfXwiC_LVFqu4QR775EQMBGYTfArWg",
-  authDomain: "quiz-app-ee0b5.firebaseapp.com",
-  projectId: "quiz-app-ee0b5",
-  storageBucket: "quiz-app-ee0b5.firebasestorage.app",
-  messagingSenderId: "464369151452",
-  appId: "1:464369151452:web:fd8260e04610bc1470f319",
-  measurementId: "G-KVNHVQV81F"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
 // Singleton pattern for Next.js to prevent multiple inits
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-const auth = getAuth(app);
 const db = getFirestore(app);
 
-export { app, auth, db };
+let _auth = null;
+export async function getAuthInstance() {
+  if (_auth) return _auth;
+  const { getAuth } = await import('firebase/auth');
+  _auth = getAuth(app);
+  return _auth;
+}
+
+export { app, db };

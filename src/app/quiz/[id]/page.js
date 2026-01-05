@@ -1,31 +1,45 @@
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../../../lib/firebase"; 
+import { getAdmin } from "../../../lib/firebaseAdmin";
 import GameWrapper from "../../../components/GameWrapper";
 
 export async function generateMetadata({ params }) {
-  const quizId = params.id;
-  const docRef = doc(db, 'artifacts', 'flames_quiz_app', 'public', 'data', 'quizzes', quizId);
-  const snap = await getDoc(docRef);
-  if (snap.exists()) {
+  try {
+    const admin = getAdmin();
+    const db = admin.firestore();
+    const quizId = params.id;
+    const docRef = db.doc(`artifacts/flames_quiz_app/public/data/quizzes/${quizId}`);
+    const snap = await docRef.get();
+    if (!snap.exists) return { title: "Not Found" };
     const quiz = snap.data();
-    return { title: `${quiz.title} | Flames Quiz`, description: `Category: ${quiz.category} • ${quiz.questions.length} Qs` };
+    return {
+      title: `${quiz.title} | Flames Quiz`,
+      description: `Category: ${quiz.category || 'General'} • ${quiz.questions?.length || 0} Qs`,
+      openGraph: {
+        title: `${quiz.title} | Flames Quiz`,
+        description: `Category: ${quiz.category || 'General'} • ${quiz.questions?.length || 0} Qs`,
+      },
+    };
+  } catch (e) {
+    return { title: "Flames Quiz" };
   }
-  return { title: "Not Found" };
 }
 
 export default async function QuizPage({ params }) {
+  const admin = getAdmin();
+  const db = admin.firestore();
   const quizId = params.id;
-  const docRef = doc(db, 'artifacts', 'flames_quiz_app', 'public', 'data', 'quizzes', quizId);
-  const snap = await getDoc(docRef);
+  const docRef = db.doc(`artifacts/flames_quiz_app/public/data/quizzes/${quizId}`);
+  const snap = await docRef.get();
 
-  if (!snap.exists()) return <div className="min-h-screen flex items-center justify-center text-red-500">Quiz not found.</div>;
+  if (!snap.exists) {
+    return <div className="min-h-screen flex items-center justify-center text-red-500">Quiz not found.</div>;
+  }
 
   const quiz = { id: snap.id, ...snap.data() };
-  if(quiz.createdAt) quiz.createdAt = quiz.createdAt.toMillis();
+  if (quiz.createdAt && typeof quiz.createdAt.toMillis === "function") quiz.createdAt = quiz.createdAt.toMillis();
 
   return (
-     <div className="p-4 min-h-screen flex flex-col items-center justify-center">
-       <GameWrapper quiz={quiz} />
-     </div>
+    <div className="p-4 min-h-screen flex flex-col items-center justify-center">
+      <GameWrapper quiz={quiz} />
+    </div>
   );
 }

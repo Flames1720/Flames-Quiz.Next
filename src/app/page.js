@@ -3,8 +3,6 @@ import { useAuth } from "../context/AuthContext";
 import { Flame, ArrowRight, LayoutDashboard, User, LogOut } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signInWithPopup, GoogleAuthProvider, signOut } from "firebase/auth";
-import { auth } from "../lib/firebase";
 
 export default function Home() {
   const { user, signInGuest } = useAuth();
@@ -16,7 +14,14 @@ export default function Home() {
   };
 
   const handleGoogle = async () => {
-    try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (e) { alert(e.message); }
+    try {
+      const [{ signInWithPopup, GoogleAuthProvider }, { getAuthInstance }] = await Promise.all([
+        import('firebase/auth'),
+        import('../lib/firebase')
+      ]);
+      const auth = await getAuthInstance();
+      await signInWithPopup(auth, new GoogleAuthProvider());
+    } catch (e) { alert(e.message); }
   };
 
   return (
@@ -27,7 +32,11 @@ export default function Home() {
         {user ? (
              <div className="flex gap-2">
                  <Link href="/dashboard" className="p-2 bg-white/10 rounded-full hover:bg-white/20"><LayoutDashboard size={20}/></Link>
-                 <button onClick={() => signOut(auth)} className="p-2 bg-white/10 rounded-full hover:bg-red-500/20"><LogOut size={20}/></button>
+                 <button onClick={async () => {
+                   const [{ signOut }, { getAuthInstance }] = await Promise.all([import('firebase/auth'), import('../lib/firebase')]);
+                   const auth = await getAuthInstance();
+                   signOut(auth);
+                 }} className="p-2 bg-white/10 rounded-full hover:bg-red-500/20"><LogOut size={20}/></button>
              </div>
         ) : (
              <button onClick={handleGoogle} className="text-sm bg-white/10 px-4 py-2 rounded-lg hover:bg-white/20 flex items-center gap-2"><User size={16}/> Login</button>
