@@ -41,6 +41,14 @@ body {
 }
 .pulse-flame { animation: pulse-flame 2.6s ease-in-out infinite; }
 
+/* Reusable glass card utility requested by design spec */
+.glass-card {
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 1rem;
+}
+
 /* Common entrance animations used by components */
 @keyframes fade-in {
   from { opacity: 0; transform: translateY(6px); }
