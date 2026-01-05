@@ -52,11 +52,28 @@ export const AuthProvider = ({ children }) => {
       } catch (error) { console.error(error); alert("Connection Error"); }
   };
 
+  const signInWithGoogle = async () => {
+    try {
+      const { signInWithPopup, GoogleAuthProvider } = await import('firebase/auth');
+      const auth = await getAuthInstance();
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+    } catch (err) { console.error(err); alert(err.message || 'Google sign-in failed'); }
+  };
+
+  const signOutUser = async () => {
+    try {
+      const { signOut } = await import('firebase/auth');
+      const auth = await getAuthInstance();
+      await signOut(auth);
+    } catch (err) { console.warn('Sign-out failed', err); }
+  };
+
   // Do not render children until auth initialization completes to avoid
   // rendering inconsistent UI (pre-login flashes). Children will receive
   // the finalized `loading` state through context.
   return (
-    <AuthContext.Provider value={{ user, userData, loading, signInGuest }}>
+    <AuthContext.Provider value={{ user, userData, loading, signInGuest, signInWithGoogle, signOutUser }}>
       {loading ? (
         <div className="min-h-screen flex items-center justify-center">
           <svg className="animate-spin h-10 w-10 text-orange-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

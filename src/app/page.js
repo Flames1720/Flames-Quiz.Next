@@ -1,5 +1,6 @@
 "use client";
 import { useAuth } from "../context/AuthContext";
+import { useEffect } from 'react';
 import { Flame, ArrowRight, LayoutDashboard, User, LogOut, Share2, Edit3, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,6 +9,12 @@ import { GlassCard, Button } from "../components/ui/Shared";
 export default function Home() {
   const { user, signInGuest } = useAuth();
   const router = useRouter();
+
+  // Redirect unauthenticated users to the login page
+  useEffect(() => {
+    if (user === null) return; // still loading state handled by AuthProvider
+    if (!user) router.push('/login');
+  }, [user]);
 
   const handleStart = async () => {
     if (!user) await signInGuest();
@@ -24,6 +31,8 @@ export default function Home() {
       await signInWithPopup(auth, new GoogleAuthProvider());
     } catch (e) { alert(e.message); }
   };
+
+  if (!user) return null;
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen text-center p-6">
