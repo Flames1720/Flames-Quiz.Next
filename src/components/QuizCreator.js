@@ -63,8 +63,8 @@ export default function QuizCreator({ user, initialData, onPublish }) {
                         <input value={timeStr} onChange={e => setTimeStr(e.target.value)} className="flex-1 p-3 rounded-lg bg-slate-950/50 border border-white/20 text-white" placeholder="Time (10m)" />
                     </div>
                     <div className="flex bg-slate-900 rounded-lg p-1 border border-white/10 h-[50px]">
-                        <button onClick={() => setMode('study')} className={`flex-1 rounded ${mode === 'study' ? 'bg-orange-600 text-white' : 'text-slate-400'}`}><Eye size={16}/> Study</button>
-                        <button onClick={() => setMode('test')} className={`flex-1 rounded ${mode === 'test' ? 'bg-red-600 text-white' : 'text-slate-400'}`}><EyeOff size={16}/> Test</button>
+                        <Button onClick={() => setMode('study')} className={`flex-1 rounded ${mode === 'study' ? 'bg-orange-600 text-white' : 'text-slate-400'}`}><Eye size={16}/> Study</Button>
+                        <Button onClick={() => setMode('test')} className={`flex-1 rounded ${mode === 'test' ? 'bg-red-600 text-white' : 'text-slate-400'}`}><EyeOff size={16}/> Test</Button>
                     </div>
                     <textarea value={rawText} onChange={e => setRawText(e.target.value)} className="w-full h-64 p-3 rounded-lg font-mono text-sm bg-slate-950/50 border border-white/20 text-white" placeholder="Q: Question..." />
                     <Button onClick={handleParse} className="w-full">Parse</Button>

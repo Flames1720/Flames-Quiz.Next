@@ -103,11 +103,11 @@ export default function Dashboard() {
 
       {/* MODALS */}
       {showPay && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4">
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4">
               <div className="bg-white text-slate-900 rounded-xl p-8 max-w-sm w-full text-center relative">
-                  <button onClick={() => setShowPay(false)} className="absolute top-4 right-4 text-slate-400"><XCircle/></button>
+                  <Button variant="ghost" className="absolute top-4 right-4 text-slate-400" onClick={() => setShowPay(false)}><XCircle/></Button>
                   <h3 className="text-xl font-bold mb-4 flex justify-center items-center gap-2"><CreditCard className="text-green-600"/> Creator Pass</h3>
-                  <button onClick={handleBecomeCreator} className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded font-bold flex justify-center gap-2 items-center">Pay ₦5,000 <ShieldCheck size={16}/></button>
+                  <Button className="w-full" onClick={handleBecomeCreator}>Pay ₦5,000 <ShieldCheck size={16}/></Button>
               </div>
           </div>
       )}

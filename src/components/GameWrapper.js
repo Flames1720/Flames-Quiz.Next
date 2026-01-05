@@ -58,7 +58,7 @@ export default function GameWrapper({ quiz }) {
                  Category: {quiz.category || 'General'}
               </div>
               
-              <button onClick={startGame} className="w-full py-3 bg-orange-600 text-white font-bold rounded hover:bg-orange-500">IGNITE</button>
+              <Button onClick={startGame} className="w-full py-3 bg-orange-600 text-white font-bold">IGNITE</Button>
               
               <div className="mt-4 text-xs text-slate-500">
                   <Link href="/dashboard" className="hover:text-white underline">Back to Library</Link>
