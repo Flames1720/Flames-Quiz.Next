@@ -154,23 +154,25 @@ export default function Dashboard() {
                   <span className="text-xs text-slate-400">{q.questions?.length} Qs</span>
                                     <div className="flex gap-2">
                                         {((isCreator && q.creatorId === user.uid) || isAdmin) && (
-                                                <button onClick={() => { setEditData(q); setView('create'); }} className="p-2 bg-white/5 rounded hover:bg-white/10" title="Edit"><Edit3 size={16}/></button>
+                                            <Button variant="ghost" onClick={() => { setEditData(q); setView('create'); }} className="p-2" title="Edit"><Edit3 size={16}/></Button>
                                         )}
-                                        <button onClick={() => {
-                                                const url = `${window.location.origin}/quiz/${q.id}`;
-                                                navigator.clipboard.writeText(url);
-                                                alert("Link copied! ID: " + q.id);
-                                        }} className="p-2 bg-white/5 rounded hover:bg-purple-500/20 text-purple-400" title="Copy Link/Code"><Share2 size={16}/></button>
-                                        <Link href={`/quiz/${q.id}`} className="p-2 bg-white/5 rounded hover:bg-green-500/20 text-green-400" title="Play"><Play size={16}/></Link>
+                                        <Button variant="ghost" onClick={() => {
+                                            const url = `${window.location.origin}/quiz/${q.id}`;
+                                            navigator.clipboard.writeText(url);
+                                            alert("Link copied! ID: " + q.id);
+                                        }} className="p-2 text-purple-400" title="Copy Link/Code"><Share2 size={16}/></Button>
+                                        <Link href={`/quiz/${q.id}`}>
+                                          <Button variant="ghost" className="p-2 text-green-400" title="Play"><Play size={16}/></Button>
+                                        </Link>
                                         {isAdmin && (
-                                            <button onClick={async () => {
-                                                    if (!confirm('Delete this quiz permanently?')) return;
-                                                    try {
-                                                            await deleteDoc(doc(db, 'artifacts', 'flames_quiz_app', 'public', 'data', 'quizzes', q.id));
-                                                            alert('Deleted');
-                                                            setQuizzes(prev => prev.filter(x => x.id !== q.id));
-                                                    } catch (e) { alert('Delete failed'); console.error(e); }
-                                            }} className="p-2 bg-red-600/10 rounded hover:bg-red-600/20 text-red-400" title="Delete"><XCircle size={16}/></button>
+                                            <Button variant="danger" onClick={async () => {
+                                                if (!confirm('Delete this quiz permanently?')) return;
+                                                try {
+                                                    await deleteDoc(doc(db, 'artifacts', 'flames_quiz_app', 'public', 'data', 'quizzes', q.id));
+                                                    alert('Deleted');
+                                                    setQuizzes(prev => prev.filter(x => x.id !== q.id));
+                                                } catch (e) { alert('Delete failed'); console.error(e); }
+                                            }} className="p-2" title="Delete"><XCircle size={16}/></Button>
                                         )}
                                     </div>
               </div>
