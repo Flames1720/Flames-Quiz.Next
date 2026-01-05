@@ -3,30 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { serverTimestamp, collection, doc, addDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { GlassCard, Button } from './ui/Shared';
-import { LatexText } from './utils/Helpers';
+import { LatexText, stringifyQuizContent, parseQuizContent } from './utils/Helpers';
 import { Eye, EyeOff, LayoutDashboard, Tag } from 'lucide-react';
 
-const formatTime = (seconds) => { if(!seconds) return ""; return Math.floor(seconds/60) + "m"; }; 
+const formatTime = (seconds) => { if(!seconds) return ""; return Math.floor(seconds/60) + "m"; };
 const parseTime = (str) => { return parseInt(str)*60 || 0; };
-const stringifyQuizContent = (qs) => qs.map(q => {
-    let block = `Q: ${q.text}\n`;
-    ['A','B','C','D'].forEach(k => { if(q.options[k]) block += `${k}: ${q.options[k]} ${q.correct===k?'##':''}\n`; });
-    if(q.explanation) block += `R: ${q.explanation}\n`; return block;
-}).join('\n\n');
-const parseQuizContent = (text) => {
-    const blocks = text.split(/\n\s*\n/); const qs = []; let err = null;
-    blocks.forEach((b, i) => {
-        if(!b.trim()) return; const lines = b.split('\n').map(l=>l.trim()).filter(Boolean);
-        const q = { id: crypto.randomUUID(), text: '', options: {}, correct: '', explanation: '' };
-        lines.forEach(l => {
-            if(l.startsWith('Q:')) q.text = l.substring(2).trim();
-            else if(l.startsWith('R:')) q.explanation = l.substring(2).trim();
-            else { const key = l[0]; if(['A','B','C','D'].includes(key)) { if(l.includes('##')) { q.correct = key; q.options[key] = l.substring(2).replace('##','').trim(); } else q.options[key] = l.substring(2).trim(); } }
-        });
-        if(!q.text || !q.correct) err = `Block ${i+1} incomplete`; qs.push(q);
-    });
-    return { questions: qs, error: err };
-};
 
 export default function QuizCreator({ user, initialData, onPublish }) {
     const [title, setTitle] = useState('');

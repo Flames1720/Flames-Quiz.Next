@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { db } from "../../lib/firebase";
-import { collection, query, where, getDocs, orderBy, doc, getDoc, setDoc, serverTimestamp, updateDoc } from "firebase/firestore"; 
+import { collection, query, where, getDocs, orderBy, doc, getDoc, setDoc, serverTimestamp, updateDoc, deleteDoc } from "firebase/firestore"; 
 import QuizCreator from "../../components/QuizCreator";
 import Link from "next/link";
 import { Edit3, Share2, Plus, Loader2, Play, Crown, Clock, Flame, CreditCard, ShieldCheck, Lock, XCircle, Search, BarChart3, BookOpen, User } from "lucide-react";
@@ -91,11 +91,11 @@ export default function Dashboard() {
             <p className="text-slate-400 text-sm">Welcome, {userData?.displayName || 'Guest'}</p>
         </div>
         
-        <div className="flex gap-2 flex-wrap justify-center">
+            <div className="flex gap-2 flex-wrap justify-center">
             <Link href="/profile"><Button variant="secondary"><User size={18}/> Profile</Button></Link>
             <Button variant={view==='library'?'primary':'secondary'} onClick={()=>setView('library')}><BookOpen size={18}/> Library</Button>
-            {isCreator && <Button variant={view==='create'?'primary':'secondary'} onClick={()=>setView('create')}><Plus size={18}/> Creator</Button>}
-            {!isCreator && <Button variant="secondary" className="bg-yellow-600/20 text-yellow-400" onClick={()=>setShowPay(true)}><Crown size={18}/> Upgrade</Button>}
+            {(isCreator || isAdmin) && <Button variant={view==='create'?'primary':'secondary'} onClick={()=>setView('create')}><Plus size={18}/> Creator</Button>}
+            {!isCreator && !isAdmin && <Button variant="secondary" className="bg-yellow-600/20 text-yellow-400" onClick={()=>setShowPay(true)}><Crown size={18}/> Upgrade</Button>}
             {isAdmin && <Button variant="secondary" className="bg-purple-900/20 text-purple-400"><BarChart3 size={18}/> Admin</Button>}
             {!isAdmin && !isCreator && <Button variant="ghost" onClick={()=>setShowKeyInput(true)} className="text-xs text-slate-500"><Lock size={14}/></Button>}
         </div>
@@ -152,17 +152,27 @@ export default function Dashboard() {
               
               <div className="flex items-center justify-between mt-4">
                   <span className="text-xs text-slate-400">{q.questions?.length} Qs</span>
-                  <div className="flex gap-2">
-                    {(isCreator && q.creatorId === user.uid) && (
-                        <button onClick={() => { setEditData(q); setView('create'); }} className="p-2 bg-white/5 rounded hover:bg-white/10"><Edit3 size={16}/></button>
-                    )}
-                    <button onClick={() => {
-                        const url = `${window.location.origin}/quiz/${q.id}`;
-                        navigator.clipboard.writeText(url);
-                        alert("Link copied! ID: " + q.id);
-                    }} className="p-2 bg-white/5 rounded hover:bg-purple-500/20 text-purple-400" title="Copy Link/Code"><Share2 size={16}/></button>
-                    <Link href={`/quiz/${q.id}`} className="p-2 bg-white/5 rounded hover:bg-green-500/20 text-green-400"><Play size={16}/></Link>
-                  </div>
+                                    <div className="flex gap-2">
+                                        {((isCreator && q.creatorId === user.uid) || isAdmin) && (
+                                                <button onClick={() => { setEditData(q); setView('create'); }} className="p-2 bg-white/5 rounded hover:bg-white/10" title="Edit"><Edit3 size={16}/></button>
+                                        )}
+                                        <button onClick={() => {
+                                                const url = `${window.location.origin}/quiz/${q.id}`;
+                                                navigator.clipboard.writeText(url);
+                                                alert("Link copied! ID: " + q.id);
+                                        }} className="p-2 bg-white/5 rounded hover:bg-purple-500/20 text-purple-400" title="Copy Link/Code"><Share2 size={16}/></button>
+                                        <Link href={`/quiz/${q.id}`} className="p-2 bg-white/5 rounded hover:bg-green-500/20 text-green-400" title="Play"><Play size={16}/></Link>
+                                        {isAdmin && (
+                                            <button onClick={async () => {
+                                                    if (!confirm('Delete this quiz permanently?')) return;
+                                                    try {
+                                                            await deleteDoc(doc(db, 'artifacts', 'flames_quiz_app', 'public', 'data', 'quizzes', q.id));
+                                                            alert('Deleted');
+                                                            setQuizzes(prev => prev.filter(x => x.id !== q.id));
+                                                    } catch (e) { alert('Delete failed'); console.error(e); }
+                                            }} className="p-2 bg-red-600/10 rounded hover:bg-red-600/20 text-red-400" title="Delete"><XCircle size={16}/></button>
+                                        )}
+                                    </div>
               </div>
             </div>
           ))}

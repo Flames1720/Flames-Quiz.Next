@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Profile Preview - Flames Quiz</title>
+  <style>
+    :root{--bg:#020617;--card:#0f1724;--glass:rgba(15,23,42,0.45);--accent:#ff7a18;--muted:#94a3b8;--glass-border:rgba(255,255,255,0.08)}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:#e6eef8}
+    .container{max-width:1024px;margin:40px auto;padding:20px}
+    .back{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.03);padding:8px 12px;border-radius:10px;border:1px solid var(--glass-border);color:#cbd5e1;text-decoration:none}
+    h1{font-size:28px;margin:18px 0}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:18px;padding:18px;border:1px solid var(--glass-border);backdrop-filter:blur(8px)}
+    .perf{width:100%;height:250px;border-radius:14px;overflow:hidden;display:flex;background:linear-gradient(90deg,#341217 0%,#0b2b3a 100%)}
+    .perf-left{width:35%;background:linear-gradient(180deg,#ff7a18,#b42309);display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;padding:20px}
+    .perf-left .avatar{width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:24px}
+    .perf-right{flex:1;padding:22px;color:#eaf6ff}
+    .perf-right h2{margin:0 0 6px;font-size:22px}

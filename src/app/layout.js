@@ -14,12 +14,16 @@ export default function RootLayout({ children }) {
       <head>
           {/* KaTeX CSS */}
           <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+          {/* Google Inter font */}
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
           {/* KaTeX JS Library */}
           <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
           {/* KaTeX Auto-Render Extension */}
           <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
       </head>
-      <body className="bg-slate-950 text-slate-200 overflow-x-hidden">
+        <body className="bg-slate-950 text-slate-200 overflow-x-hidden font-sans">
         <AuthProvider>
            {/* Background Animation */}
            <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
