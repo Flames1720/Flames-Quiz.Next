@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { GlassCard, Button } from "../components/ui/Shared";
 
 export default function Home() {
-  const { user, signInGuest } = useAuth();
+  const { user, signInGuest, signInWithGoogle, signOutUser } = useAuth();
   const router = useRouter();
 
   // Redirect unauthenticated users to the login page
@@ -22,14 +22,7 @@ export default function Home() {
   };
 
   const handleGoogle = async () => {
-    try {
-      const [{ signInWithPopup, GoogleAuthProvider }, { getAuthInstance }] = await Promise.all([
-        import('firebase/auth'),
-        import('../lib/firebase')
-      ]);
-      const auth = await getAuthInstance();
-      await signInWithPopup(auth, new GoogleAuthProvider());
-    } catch (e) { alert(e.message); }
+    await signInWithGoogle();
   };
 
   if (!user) return null;
@@ -42,15 +35,11 @@ export default function Home() {
         {user ? (
              <div className="flex gap-2">
                  <Link href="/dashboard" className="p-2 bg-white/10 rounded-full hover:bg-white/20"><LayoutDashboard size={20}/></Link>
-                 <button onClick={async () => {
-                   const [{ signOut }, { getAuthInstance }] = await Promise.all([import('firebase/auth'), import('../lib/firebase')]);
-                   const auth = await getAuthInstance();
-                   signOut(auth);
-                 }} className="p-2 bg-white/10 rounded-full hover:bg-red-500/20"><LogOut size={20}/></button>
+                 <button onClick={signOutUser} className="p-2 bg-white/10 rounded-full hover:bg-red-500/20"><LogOut size={20}/></button>
              </div>
         ) : (
              <div className="flex items-center gap-3">
-               <button onClick={handleGoogle} className="text-sm bg-white/10 px-4 py-2 rounded-lg hover:bg-white/20 flex items-center gap-2"><User size={16}/> Login</button>
+               <Link href="/login" className="text-sm bg-white/10 px-4 py-2 rounded-lg hover:bg-white/20 flex items-center gap-2"><User size={16}/> Login</Link>
                <Link href="/dashboard" className="text-sm text-slate-300 underline">Browse</Link>
              </div>
         )}

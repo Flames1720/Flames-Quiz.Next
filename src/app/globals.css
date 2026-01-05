@@ -41,6 +41,22 @@ body {
 }
 .pulse-flame { animation: pulse-flame 2.6s ease-in-out infinite; }
 
+/* Common entrance animations used by components */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fade-in 420ms ease both; }
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up { animation: slide-up 480ms cubic-bezier(.2,.9,.2,1) both; }
+
+/* small utility for subtle focus outlines on inputs */
+.focus-ring:focus { box-shadow: 0 0 0 4px rgba(99,102,241,0.06); outline: none; }
+
 /* Improved glass card subtle border + backdrop */
 .glass-refined { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); backdrop-filter: blur(10px); }
 
