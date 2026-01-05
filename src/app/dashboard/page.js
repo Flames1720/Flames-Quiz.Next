@@ -77,7 +77,14 @@ export default function Dashboard() {
   };
 
   if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-orange-500"/></div>;
-  if (!user) return <div className="text-center p-20">Please log in.</div>;
+    if (!user) {
+        // redirect to auth for sign-in flow
+        if (typeof window !== 'undefined') {
+            window.location.href = '/auth';
+            return null;
+        }
+        return <div className="text-center p-20">Please log in.</div>;
+    }
 
   const isAdmin = user.email === ADMIN_EMAIL_VAR;
   const isCreator = userData?.isCreator || isAdmin;

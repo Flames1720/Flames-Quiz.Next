@@ -27,7 +27,10 @@ export default function Profile() {
         }, 100);
     };
 
-    if(!user) return <div className="p-10 text-center">Please login.</div>;
+    if(!user) {
+        if (typeof window !== 'undefined') { window.location.href = '/auth'; return null; }
+        return <div className="p-10 text-center">Please login.</div>;
+    }
 
     return (
         <div className="min-h-screen p-4 flex flex-col items-center">

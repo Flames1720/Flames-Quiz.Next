@@ -14,6 +14,12 @@ export default function Home() {
     else router.push('/auth');
   };
 
+  // Redirect to auth as the primary entry if not logged in
+  useEffect(() => {
+    if (user === null) return; // still initializing
+    if (!user) router.replace('/auth');
+  }, [user]);
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen text-center p-6">
       {/* Nav */}
@@ -26,7 +32,7 @@ export default function Home() {
              </div>
         ) : (
              <div className="flex items-center gap-3">
-            <Button onClick={() => router.push('/login')} className="px-4 py-2 flex items-center gap-2"><User size={16}/> Login</Button>
+            <Button onClick={() => router.push('/auth')} className="px-4 py-2 flex items-center gap-2"><User size={16}/> Login</Button>
             <Link href="/dashboard" className="text-sm text-slate-300 underline">Browse</Link>
              </div>
         )}
