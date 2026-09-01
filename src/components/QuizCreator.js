@@ -4,7 +4,7 @@ import { serverTimestamp, collection, doc, addDoc, updateDoc } from 'firebase/fi
 import { db } from '../lib/firebase';
 import { GlassCard, Button } from './ui/Shared';
 import { LatexText, stringifyQuizContent, parseQuizContent, autoFixQuizContent } from './utils/Helpers';
-import { Eye, EyeOff, Wand2, AlertTriangle } from 'lucide-react';
+import { Eye, EyeOff, Wand2, AlertTriangle, Loader2 } from 'lucide-react';
 
 const parseTime = (str) => {
     if (!str) return 0;
@@ -24,7 +24,9 @@ export default function QuizCreator({ user, initialData, onPublish }) {
     const [error, setError] = useState(null);
     const [errors, setErrors] = useState([]);
     const [fixLog, setFixLog] = useState([]);
+    const [fixSummary, setFixSummary] = useState('');
     const [isPublishing, setIsPublishing] = useState(false);
+    const [isFixing, setIsFixing] = useState(false);
     const textareaRef = useRef(null);
 
     const appId = "flames_quiz_app";
@@ -50,30 +52,11 @@ export default function QuizCreator({ user, initialData, onPublish }) {
         }
         el.focus();
         el.setSelectionRange(pos, pos + (lines[lineNum - 1]?.length || 0));
-        // Scroll roughly into view
         const lineHeight = el.scrollHeight / Math.max(lines.length, 1);
         el.scrollTop = Math.max(0, (lineNum - 3) * lineHeight);
     };
 
-    const handleParse = () => {
-        const result = parseQuizContent(rawText);
-        setErrors(result.errors || []);
-        setFixLog([]);
-        if (result.fatal || result.error) {
-            setError(result.error);
-            setPreview(null);
-        } else {
-            setError(null);
-            setPreview(result.questions);
-        }
-    };
-
-    const handleAutoFix = () => {
-        const { text, fixes } = autoFixQuizContent(rawText);
-        setRawText(text);
-        setFixLog(fixes);
-
-        // Re-parse after fix
+    const applyParsed = (text) => {
         const result = parseQuizContent(text);
         setErrors(result.errors || []);
         if (result.fatal || result.error) {
@@ -83,10 +66,78 @@ export default function QuizCreator({ user, initialData, onPublish }) {
             setError(null);
             setPreview(result.questions);
         }
+        return result;
+    };
 
-        // Jump to first fix so the user sees the injection point
-        if (fixes.length) {
-            setTimeout(() => jumpToLine(fixes[0].line), 50);
+    const handleParse = () => {
+        setFixLog([]);
+        setFixSummary('');
+        applyParsed(rawText);
+    };
+
+    /** Prefer cloud LLM; fall back to local structural fixer if API key missing or request fails. */
+    const handleAutoFix = async () => {
+        setIsFixing(true);
+        setFixSummary('');
+        try {
+            // Always parse first so we can send real line-numbered errors to the model
+            const pre = parseQuizContent(rawText);
+            setErrors(pre.errors || []);
+
+            let usedSource = 'local';
+            let nextText = rawText;
+            let fixes = [];
+            let summary = '';
+
+            try {
+                const res = await fetch('/api/ai-fix', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: rawText, errors: pre.errors || [] }),
+                });
+                const data = await res.json();
+
+                if (res.ok && data.fixedText) {
+                    nextText = data.fixedText;
+                    fixes = (data.fixes || []).map((f) => ({
+                        line: f.line || 1,
+                        reason: f.reason || 'AI adjustment',
+                    }));
+                    summary = data.summary || `AI (${data.model || 'llm'}) applied ${fixes.length} fix(es)`;
+                    usedSource = 'llm';
+                } else if (data.code === 'NO_API_KEY') {
+                    // Fall through to local
+                    summary = 'No AI_API_KEY — used local fixer';
+                } else {
+                    summary = data.error || 'AI failed — used local fixer';
+                }
+            } catch (netErr) {
+                summary = 'AI unreachable — used local fixer';
+                console.warn(netErr);
+            }
+
+            if (usedSource !== 'llm') {
+                const local = autoFixQuizContent(rawText);
+                nextText = local.text;
+                fixes = local.fixes.map((f) => ({
+                    line: f.line,
+                    reason: f.reason,
+                }));
+                if (!summary) summary = `Local fixer applied ${fixes.length} change(s)`;
+                else if (!summary.includes('local')) summary += ` · local: ${fixes.length} change(s)`;
+                usedSource = 'local';
+            }
+
+            setRawText(nextText);
+            setFixLog(fixes);
+            setFixSummary(`${usedSource === 'llm' ? '🤖' : '🔧'} ${summary}`);
+            applyParsed(nextText);
+
+            if (fixes.length) {
+                setTimeout(() => jumpToLine(fixes[0].line), 50);
+            }
+        } finally {
+            setIsFixing(false);
         }
     };
 
@@ -133,9 +184,9 @@ export default function QuizCreator({ user, initialData, onPublish }) {
                         <Button onClick={() => setMode('test')} className={`flex-1 rounded ${mode === 'test' ? 'bg-red-600 text-white' : 'text-slate-400'}`}><EyeOff size={16}/> Test</Button>
                     </div>
 
-                    <div className="text-xs text-slate-500 p-2 bg-slate-900 rounded border border-white/5 font-mono">
-                        Format: Q: text (use $P_{'{'}\\text{'{'}O{'}'}_2{'}'}$ for math){'\n'}
-                        A: opt · B: opt ## · C: opt · R: explanation · blank line between questions
+                    <div className="text-xs text-slate-500 p-2 bg-slate-900 rounded border border-white/5 font-mono whitespace-pre-wrap">
+                        {`Format: Q: text  |  A/B/C/D: option  |  mark correct with ##  |  R: explanation
+Math: $P_{\\text{O}_2} < 60\\,\\text{mmHg}$  ·  blank line between questions`}
                     </div>
 
                     <textarea
@@ -147,11 +198,18 @@ export default function QuizCreator({ user, initialData, onPublish }) {
                     />
 
                     <div className="flex gap-2">
-                        <Button onClick={handleParse} className="flex-1">Parse</Button>
-                        <Button onClick={handleAutoFix} variant="secondary" className="flex-1" title="Auto-fix structure and inject ## / Q: at the correct lines">
-                            <Wand2 size={16} /> AI Fix
+                        <Button onClick={handleParse} className="flex-1" disabled={isFixing}>Parse</Button>
+                        <Button onClick={handleAutoFix} variant="secondary" className="flex-1" disabled={isFixing || !rawText.trim()}>
+                            {isFixing ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+                            {isFixing ? 'Fixing…' : 'AI Fix'}
                         </Button>
                     </div>
+
+                    {fixSummary && (
+                        <div className="text-slate-300 text-xs p-2 bg-slate-900/80 border border-white/10 rounded">
+                            {fixSummary}
+                        </div>
+                    )}
 
                     {error && (
                         <div className="text-red-400 text-xs space-y-1 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
@@ -170,8 +228,8 @@ export default function QuizCreator({ user, initialData, onPublish }) {
                     )}
 
                     {fixLog.length > 0 && (
-                        <div className="text-amber-300 text-xs space-y-1 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
-                            <div className="font-bold">AI Fix applied ({fixLog.length})</div>
+                        <div className="text-amber-300 text-xs space-y-1 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg max-h-40 overflow-y-auto">
+                            <div className="font-bold">Changes ({fixLog.length}) — click to jump</div>
                             {fixLog.map((f, i) => (
                                 <button
                                     key={i}
