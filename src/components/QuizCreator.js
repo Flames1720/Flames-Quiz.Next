@@ -24,7 +24,7 @@ export default function QuizCreator({ user, initialData, onPublish }) {
     const [error, setError] = useState(null);
     const [errors, setErrors] = useState([]);
     const [fixLog, setFixLog] = useState([]);
-    const [fixSummary, setFixSummary] = useState('');
+    const [fixMeta, setFixMeta] = useState(null); // { source, warning, model }
     const [isPublishing, setIsPublishing] = useState(false);
     const [isFixing, setIsFixing] = useState(false);
     const textareaRef = useRef(null);
@@ -56,8 +56,7 @@ export default function QuizCreator({ user, initialData, onPublish }) {
         el.scrollTop = Math.max(0, (lineNum - 3) * lineHeight);
     };
 
-    const applyParsed = (text) => {
-        const result = parseQuizContent(text);
+    const applyParseResult = (result) => {
         setErrors(result.errors || []);
         if (result.fatal || result.error) {
             setError(result.error);
@@ -66,72 +65,62 @@ export default function QuizCreator({ user, initialData, onPublish }) {
             setError(null);
             setPreview(result.questions);
         }
-        return result;
     };
 
     const handleParse = () => {
         setFixLog([]);
-        setFixSummary('');
-        applyParsed(rawText);
+        setFixMeta(null);
+        applyParseResult(parseQuizContent(rawText));
     };
 
-    /** Prefer cloud LLM; fall back to local structural fixer if API key missing or request fails. */
+    /** Prefer server LLM; fall back to local autoFixQuizContent */
     const handleAutoFix = async () => {
         setIsFixing(true);
-        setFixSummary('');
+        setFixMeta(null);
         try {
-            // Always parse first so we can send real line-numbered errors to the model
+            // Current parse errors help the model target the right lines
             const pre = parseQuizContent(rawText);
-            setErrors(pre.errors || []);
 
-            let usedSource = 'local';
-            let nextText = rawText;
+            let fixedText = null;
             let fixes = [];
-            let summary = '';
+            let meta = { source: 'local' };
 
             try {
-                const res = await fetch('/api/ai-fix', {
+                const res = await fetch('/api/quiz-fix', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: rawText, errors: pre.errors || [] }),
+                    body: JSON.stringify({
+                        text: rawText,
+                        errors: pre.errors || [],
+                    }),
                 });
                 const data = await res.json();
-
-                if (res.ok && data.fixedText) {
-                    nextText = data.fixedText;
-                    fixes = (data.fixes || []).map((f) => ({
-                        line: f.line || 1,
-                        reason: f.reason || 'AI adjustment',
-                    }));
-                    summary = data.summary || `AI (${data.model || 'llm'}) applied ${fixes.length} fix(es)`;
-                    usedSource = 'llm';
-                } else if (data.code === 'NO_API_KEY') {
-                    // Fall through to local
-                    summary = 'No AI_API_KEY — used local fixer';
+                if (res.ok && data?.text) {
+                    fixedText = data.text;
+                    fixes = Array.isArray(data.fixes) ? data.fixes : [];
+                    meta = {
+                        source: data.source || 'llm',
+                        warning: data.warning,
+                        model: data.model,
+                    };
                 } else {
-                    summary = data.error || 'AI failed — used local fixer';
+                    throw new Error(data?.error || 'AI Fix request failed');
                 }
             } catch (netErr) {
-                summary = 'AI unreachable — used local fixer';
-                console.warn(netErr);
-            }
-
-            if (usedSource !== 'llm') {
+                // Offline / API down → pure client local fix
                 const local = autoFixQuizContent(rawText);
-                nextText = local.text;
-                fixes = local.fixes.map((f) => ({
-                    line: f.line,
-                    reason: f.reason,
-                }));
-                if (!summary) summary = `Local fixer applied ${fixes.length} change(s)`;
-                else if (!summary.includes('local')) summary += ` · local: ${fixes.length} change(s)`;
-                usedSource = 'local';
+                fixedText = local.text;
+                fixes = local.fixes;
+                meta = {
+                    source: 'local',
+                    warning: `Could not reach AI API (${netErr.message}). Used local structural fix.`,
+                };
             }
 
-            setRawText(nextText);
+            setRawText(fixedText);
             setFixLog(fixes);
-            setFixSummary(`${usedSource === 'llm' ? '🤖' : '🔧'} ${summary}`);
-            applyParsed(nextText);
+            setFixMeta(meta);
+            applyParseResult(parseQuizContent(fixedText));
 
             if (fixes.length) {
                 setTimeout(() => jumpToLine(fixes[0].line), 50);
@@ -185,8 +174,7 @@ export default function QuizCreator({ user, initialData, onPublish }) {
                     </div>
 
                     <div className="text-xs text-slate-500 p-2 bg-slate-900 rounded border border-white/5 font-mono whitespace-pre-wrap">
-                        {`Format: Q: text  |  A/B/C/D: option  |  mark correct with ##  |  R: explanation
-Math: $P_{\\text{O}_2} < 60\\,\\text{mmHg}$  ·  blank line between questions`}
+                        {`Format: Q: text (math: $P_{\\text{O}_2}$)\nA: opt  B: opt ##  C: opt  R: explanation\nBlank line between questions`}
                     </div>
 
                     <textarea
@@ -205,12 +193,6 @@ Math: $P_{\\text{O}_2} < 60\\,\\text{mmHg}$  ·  blank line between questions`}
                         </Button>
                     </div>
 
-                    {fixSummary && (
-                        <div className="text-slate-300 text-xs p-2 bg-slate-900/80 border border-white/10 rounded">
-                            {fixSummary}
-                        </div>
-                    )}
-
                     {error && (
                         <div className="text-red-400 text-xs space-y-1 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
                             <div className="font-bold flex items-center gap-1"><AlertTriangle size={14}/> Parse errors</div>
@@ -227,9 +209,19 @@ Math: $P_{\\text{O}_2} < 60\\,\\text{mmHg}$  ·  blank line between questions`}
                         </div>
                     )}
 
-                    {fixLog.length > 0 && (
-                        <div className="text-amber-300 text-xs space-y-1 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg max-h-40 overflow-y-auto">
-                            <div className="font-bold">Changes ({fixLog.length}) — click to jump</div>
+                    {(fixLog.length > 0 || fixMeta?.warning) && (
+                        <div className="text-amber-300 text-xs space-y-1 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                            <div className="font-bold flex flex-wrap items-center gap-2">
+                                <span>AI Fix ({fixLog.length} change{fixLog.length === 1 ? '' : 's'})</span>
+                                {fixMeta?.source && (
+                                    <span className="px-1.5 py-0.5 rounded bg-white/10 text-[10px] uppercase tracking-wide">
+                                        {fixMeta.source}{fixMeta.model ? ` · ${fixMeta.model}` : ''}
+                                    </span>
+                                )}
+                            </div>
+                            {fixMeta?.warning && (
+                                <p className="text-amber-200/80">{fixMeta.warning}</p>
+                            )}
                             {fixLog.map((f, i) => (
                                 <button
                                     key={i}
